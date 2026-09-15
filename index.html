@@ -125,9 +125,6 @@ body.wake-off #wake{display:block}
 
 <div class="ctl">
   <span class="gps" id="gps">GPS –</span>
-  <button class="cm" data-c="own" aria-pressed="false">Oma suunta</button>
-  <button class="cm" data-c="opp" aria-pressed="false">Vastasuunta</button>
-  <button class="cm" data-c="b" aria-pressed="true">Molemmat</button>
   <button class="sim" id="flip">Käänny (sim)</button>
   <button class="sim sp" data-v="6">6 km/h</button>
   <button class="sim sp" data-v="80">80 km/h</button>
@@ -160,7 +157,10 @@ const BASE = {
 };
 
 let DATA = null;
-let mode = 'b';
+/* Kanavasuodatin (oma suunta / vastasuunta) poistettu, Tero 15.9.: turha ja vaarallinen.
+   Kentällä valinta jäi vahingossa päälle ja piilotettu puoli näytti puuttuvalta datalta.
+   Molemmat puolet näytetään aina. */
+const mode = 'b';
 let simM = null, simV = 80/3.6, simDs = 1;
 
 /* ---------- paikannus ---------- */
@@ -584,10 +584,6 @@ function tick(){
   if (DATA) render();
 }
 
-document.querySelectorAll('.cm').forEach(b => b.onclick = () => {
-  document.querySelectorAll('.cm').forEach(x => x.setAttribute('aria-pressed','false'));
-  b.setAttribute('aria-pressed','true'); mode = b.dataset.c;
-});
 document.getElementById('flip').onclick = () => { simDs = -simDs; };
 document.querySelectorAll('.sp').forEach(b => b.onclick = () => { simV = Number(b.dataset.v)/3.6; });
 document.getElementById('go').onclick = () => {
