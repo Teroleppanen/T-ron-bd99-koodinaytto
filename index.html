@@ -153,7 +153,8 @@ const LOOK_M = 350;       /* Tero 15.9. tien päältä: ennakko 350 m */
 /* Nimet kuljettajan näkökulmasta (käännetty kuvio = börjar/slutar vaihtuu). */
 const BASE = {
   SOLID: ['Spärr börjar', 'Spärr slutar'], FORV: ['Varning före spärr börjar', 'Varning före spärr slutar'],
-  WARN: ['Varningslinje börjar', 'Varningslinje slutar'], TAT: ['3+3 börjar', '3+3 slutar']
+  WARN: ['Varningslinje börjar', 'Varningslinje slutar'], TAT: ['3+3 börjar', '3+3 slutar'],
+  UPP: ['Uppehåll (ehdotus)', 'Uppehåll (ehdotus)']
 };
 
 let DATA = null;
@@ -280,9 +281,28 @@ function drawGlyph(cx, code, rot, x, y, s, stroke, dim){
 function stateAt(ch, pos){
   let st = 'NORMAL';
   for (const i of DATA.iv) {
+    if (i.s === 'GAP') continue;
     if (i.ch === ch && pos >= i.a && pos < i.b) { if (i.s === 'SOLID') return 'SOLID'; st = i.s; }
   }
   return st;
+}
+/* Risteyskatkot (Tero 15.9.): sulkuviivasta leikataan katkovälit pois piirrossa.
+   Katkot ovat NVDB-topologiasta laskettuja ehdotuksia, ks. build_bd99_demo.py. */
+let GAPS = null;
+function cutGaps(ch, a, b){
+  if (!GAPS) { GAPS = {h: [], v: []}; for (const i of DATA.iv) if (i.s === 'GAP' && GAPS[i.ch]) GAPS[i.ch].push(i); }
+  let segs = [[a, b]];
+  for (const gp of (GAPS[ch] || [])) {
+    if (gp.b <= a || gp.a >= b) continue;
+    const out = [];
+    for (const [s, e] of segs) {
+      if (gp.b <= s || gp.a >= e) { out.push([s, e]); continue; }
+      if (gp.a > s) out.push([s, gp.a]);
+      if (gp.b < e) out.push([gp.b, e]);
+    }
+    segs = out;
+  }
+  return segs;
 }
 function inSingle(pos){ return DATA.singleZones.some(z => pos >= z.a && pos < z.b); }
 function speedAt(pos){ let cur = null; for (const s of DATA.speeds) { if (s.m <= pos) cur = s; } return cur; }
@@ -333,14 +353,15 @@ function drawRoad(m, ds){
      Puolet vaihtuvat ajosuunnan mukaan (Tero 15.9.): ruutu näyttää tien tuulilasin läpi. */
   const lw = Math.max(5, Math.round(W * 0.018));
   const lanes = [{ch:'v', x:cxm - lw*ds}, {ch:'h', x:cxm + lw*ds}].filter(L => visibleCh(L.ch, ds));
-  const dash = (x, st, p) => {
+  const dash = (x, st, p, ch) => {
     const on = st === 'SOLID' ? 12 : (st === 'WARN' ? 9 : 3);
     const off = st === 'SOLID' ? 0 : (st === 'WARN' ? 3 : (st === 'TAT' ? 3 : 9));
-    const y1 = y(p), y2 = y(p + on);
-    if (Math.min(y1,y2) < H+20 && Math.max(y1,y2) > -20) {
-      cx.strokeStyle = st === 'NORMAL' ? '#9AA2AC' : '#F2EFE6';
-      cx.lineWidth = lw;
-      cx.beginPath(); cx.moveTo(x, y1); cx.lineTo(x, y2); cx.stroke();
+    const segs = (st === 'SOLID' && ch) ? cutGaps(ch, p, p + on) : [[p, p + on]];
+    cx.strokeStyle = st === 'NORMAL' ? '#9AA2AC' : '#F2EFE6';
+    cx.lineWidth = lw;
+    for (const [s0, e0] of segs) {
+      const y1 = y(s0), y2 = y(e0);
+      if (Math.min(y1,y2) < H+20 && Math.max(y1,y2) > -20) { cx.beginPath(); cx.moveTo(x, y1); cx.lineTo(x, y2); cx.stroke(); }
     }
     return on + off;
   };
@@ -353,7 +374,7 @@ function drawRoad(m, ds){
     const sh = stateAt('h', p), sv = stateAt('v', p);
     /* Kummallakaan puolella ei varoitusta eikä sulkua: 3+9 kulkee yksin keskellä (Tero 15.9.). */
     if (sh === 'NORMAL' && sv === 'NORMAL') { p += dash(cxm, 'NORMAL', p); continue; }
-    for (const L of lanes) dash(L.x, L.ch === 'h' ? sh : sv, p);
+    for (const L of lanes) dash(L.x, L.ch === 'h' ? sh : sv, p, L.ch);
     p += 12;
   }
 
@@ -450,17 +471,20 @@ function drawRoadPersp(m, ds){
   }
   const lw0 = Math.max(4, Math.round(W*0.02));
   const lanes = [{ch:'v', off:-lw0*ds}, {ch:'h', off:lw0*ds}].filter(L => visibleCh(L.ch, ds));
-  const quad = (off, st, p) => {
+  const quad = (off, st, p, ch) => {
     const on = st === 'SOLID' ? 12 : (st === 'WARN' ? 9 : 3);
     const cyc = st === 'TAT' ? 6 : 12;
-    const da = (p - m)*ds, db = (p + on - m)*ds;
-    const d1 = clampD(Math.min(da, db)), d2 = clampD(Math.max(da, db));
-    if (d2 <= d1) return cyc;
-    const s1 = sc(d1), s2 = sc(d2), y1 = yOf(d1), y2 = yOf(d2);
-    const w1 = Math.max(0.7, lw0*s1)/2, w2 = Math.max(0.7, lw0*s2)/2;
-    const x1 = X(d1) + off*s1, x2 = X(d2) + off*s2;
+    const segs = (st === 'SOLID' && ch) ? cutGaps(ch, p, p + on) : [[p, p + on]];
     cx.fillStyle = st === 'NORMAL' ? '#9AA2AC' : '#F2EFE6';
-    cx.beginPath(); cx.moveTo(x1-w1, y1); cx.lineTo(x1+w1, y1); cx.lineTo(x2+w2, y2); cx.lineTo(x2-w2, y2); cx.closePath(); cx.fill();
+    for (const [sA, sB] of segs) {
+      const da = (sA - m)*ds, db = (sB - m)*ds;
+      const d1 = clampD(Math.min(da, db)), d2 = clampD(Math.max(da, db));
+      if (d2 <= d1) continue;
+      const s1 = sc(d1), s2 = sc(d2), y1 = yOf(d1), y2 = yOf(d2);
+      const w1 = Math.max(0.7, lw0*s1)/2, w2 = Math.max(0.7, lw0*s2)/2;
+      const x1 = X(d1) + off*s1, x2 = X(d2) + off*s2;
+      cx.beginPath(); cx.moveTo(x1-w1, y1); cx.lineTo(x1+w1, y1); cx.lineTo(x2+w2, y2); cx.lineTo(x2-w2, y2); cx.closePath(); cx.fill();
+    }
     return cyc;
   };
   const pA = Math.min(m + ds*dBehind, m + ds*dFar), pB = Math.max(m + ds*dBehind, m + ds*dFar);
@@ -470,7 +494,7 @@ function drawRoadPersp(m, ds){
     if (inSingle(p)) { p += quad(0, stateAt('w', p), p); continue; }
     const sh = stateAt('h', p), sv = stateAt('v', p);
     if (sh === 'NORMAL' && sv === 'NORMAL') { p += quad(0, 'NORMAL', p); continue; }
-    for (const L of lanes) quad(L.off, L.ch === 'h' ? sh : sv, p);
+    for (const L of lanes) quad(L.off, L.ch === 'h' ? sh : sv, p, L.ch);
     p += 12;
   }
   const box0 = Math.max(33, Math.min(51, Math.round(W*0.165)));

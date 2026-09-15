@@ -21,6 +21,8 @@
     FORV_S:  [[1, 0, 3], [0, 4, 1], [1, 4, 1]],            // Varning före spärr slutar
     WARN_B:  [[0.5, 0, 1], [0.5, 2, 3]],                   // Varningslinje börjar
     WARN_S:  [[0.5, 0, 3], [0.5, 4, 1]],                   // Varningslinje slutar
+    UPP_B:   [[0, 0, 1], [1, 0, 1]],                       // Uppehåll i heldragen linje (sama alussa ja lopussa)
+    UPP_S:   [[0, 0, 1], [1, 0, 1]],
     TAT_B:   [[0, 0, 1], [1, 0, 1], [1, 2, 1], [1, 4, 1]], // 3+3 börjar
     // 3+3 slutar Kod-taulukon mukaan (kolme lyhyttä vasemmalla, yksi oikealla
     // lopussa) = börjar käännettynä. Kortin esimerkkikuva piirtää yksittäiset
