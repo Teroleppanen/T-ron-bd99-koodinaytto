@@ -2,7 +2,7 @@
  * Offline-valimuisti BD99-demolle. Yksi tie, yksi JSON, ei ajonaikaisia hakuja.
  * Nosta CACHE_NAME jokaisella julkaisulla, muuten puhelin nayttaa vanhaa.
  */
-var CACHE_NAME = "bd99demo-v1";
+var CACHE_NAME = "bd99demo-v2";
 // teroleppanen.github.io on yhteinen origin kaikille Pages-projekteille:
 // siivotaan vain omat valimuistit, ei 827:n eika BD392:n.
 var CACHE_PREFIX = "bd99demo-";
@@ -11,6 +11,7 @@ var ASSETS = [
   "index.html",
   "manifest.webmanifest",
   "js/core.js",
+  "js/codes.js",
   "vendor/proj4.js",
   "data/road99.json",
   "icons/icon-192.png",

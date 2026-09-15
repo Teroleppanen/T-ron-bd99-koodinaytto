@@ -20,30 +20,25 @@ body{background:var(--asphalt);color:var(--paint);font-family:var(--disp);
   -webkit-user-select:none;user-select:none}
 .status{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid var(--edge);
   font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--paint-dim);text-transform:uppercase;flex:0 0 auto}
-.status b{color:var(--paint);font-weight:600}
-.dir{color:var(--lcd);display:flex;align-items:center;gap:6px}
+.dir{color:var(--lcd)}
 .chain{margin-left:auto;display:flex;align-items:baseline;gap:8px}
 .chain span{font-size:10px;color:#6E7580;letter-spacing:.14em}
 .chain b{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;color:#FFF;
   font-variant-numeric:tabular-nums;background:#242A32;border:1px solid #39424C;border-radius:2px;padding:4px 10px 5px}
 .stage{flex:1 1 auto;display:flex;min-height:0}
-.roadwrap{flex:0 0 40%;position:relative;border-right:1px solid var(--edge);min-width:150px}
+.roadwrap{flex:0 0 46%;position:relative;border-right:1px solid var(--edge);min-width:150px}
 canvas{display:block;width:100%;height:100%}
 .readout{flex:1 1 auto;display:flex;flex-direction:column;padding:14px 16px;min-width:0}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--paint-dim)}
-.next{flex:0 0 auto;display:flex;align-items:flex-start;gap:16px;padding-bottom:12px}
+.next{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding-bottom:12px}
+.glyphs{display:flex;gap:4px;flex:0 0 auto}
 .next .num{font-weight:900;font-size:clamp(56px,13vw,120px);line-height:.82;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.next .unit{font-size:.3em;font-weight:600;color:var(--paint-dim);margin-left:.12em;letter-spacing:0}
-.next .name{font-family:var(--mono);font-size:clamp(12px,1.6vw,15px);color:var(--lcd);margin-top:8px}
-.next .ch{margin-top:3px}
-.queue{flex:1 1 auto;border-top:1px solid var(--edge);padding-top:10px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.next .unit{font-size:.3em;font-weight:600;color:var(--paint-dim);margin-left:.12em}
+.next .name{font-family:var(--mono);font-size:clamp(12px,1.7vw,15px);color:var(--lcd);margin-top:8px}
+.next .ch{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--paint-dim);margin-top:3px}
+.queue{flex:0 0 auto;border-top:1px solid var(--edge);padding-top:10px;display:flex;flex-direction:column;gap:10px}
 .q{display:flex;align-items:center;gap:12px}
-.q .qnum{font-weight:800;font-variant-numeric:tabular-nums}
-.q .qname{font-family:var(--mono);color:var(--paint-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.q.s2 .qnum{font-size:38px}.q.s2 .qname{font-size:12px}
-.q.s3 .qnum{font-size:26px;color:#9AA2AC}.q.s3 .qname{font-size:11px}
-.prev{flex:0 0 auto;border-top:1px solid var(--edge);padding-top:8px;margin-top:6px;display:flex;align-items:center;gap:12px;opacity:.45}
-.prev .pnum,.prev .pname,.prev .plabel{font-family:var(--mono);font-size:12px}
+.q .qnum{font-weight:800;font-variant-numeric:tabular-nums;font-size:34px}
+.q .qch{font-family:var(--mono);font-size:11px;color:var(--paint-dim);text-transform:uppercase;letter-spacing:.1em}
 .warnbox{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center}
 .stage.uncertain .readout>*:not(.warnbox){display:none}
 .stage.uncertain .warnbox{display:flex}
@@ -55,8 +50,7 @@ canvas{display:block;width:100%;height:100%}
 button{font:inherit;letter-spacing:inherit;color:var(--paint-dim);background:transparent;border:1px solid var(--edge);
   border-radius:2px;padding:8px 11px;cursor:pointer;text-transform:uppercase}
 button[aria-pressed="true"]{color:var(--asphalt);background:var(--lcd);border-color:var(--lcd)}
-.sep{width:1px;height:20px;background:var(--edge)}
-.gps{color:#8A929C;text-transform:none}
+.gps{color:#8A929C}
 .sim{display:none}
 body.simmode .sim{display:inline-flex}
 #start{position:fixed;inset:0;z-index:50;background:rgba(10,12,15,.96);display:flex;flex-direction:column;
@@ -67,13 +61,17 @@ body.simmode .sim{display:inline-flex}
 #wake{display:none;position:fixed;left:0;right:0;bottom:0;z-index:40;background:#FFD200;color:#000;text-align:center;
   font-weight:800;font-size:16px;padding:10px}
 body.wake-off #wake{display:block}
+@media (max-width:720px){
+  .stage{flex-direction:column}
+  .roadwrap{flex:0 0 58%;border-right:none;border-bottom:1px solid var(--edge)}
+  .next .num{font-size:clamp(48px,17vw,90px)}
+}
 </style>
 </head>
 <body>
 
 <div class="status">
   <span class="dir" id="dir">suunta ?</span>
-  <span><b>Rv 99</b> Haparanda–Lv 856</span>
   <span id="spd"></span>
   <span id="zone"></span>
   <span class="chain"><span>NVDB</span><b id="chain">–</b></span>
@@ -87,32 +85,25 @@ body.wake-off #wake{display:block}
       <div class="sub" id="wsub">Ei paalulukua. Väärä uskottava luku on pahempi kuin puuttuva.</div>
     </div>
     <div class="next">
-      <div class="glyph" id="g1"></div>
+      <div class="glyphs" id="g1"></div>
       <div>
         <div class="num"><span id="n1">–</span><span class="unit">m</span></div>
         <div class="name" id="c1"></div>
-        <div class="eyebrow ch" id="ch1"></div>
+        <div class="ch" id="ch1"></div>
       </div>
     </div>
     <div class="queue">
-      <div class="eyebrow">Sitten</div>
-      <div class="q s2"><span id="g2"></span><span class="qnum" id="n2">–</span><span class="qname" id="c2"></span></div>
-      <div class="q s3"><span id="g3"></span><span class="qnum" id="n3">–</span><span class="qname" id="c3"></span></div>
-    </div>
-    <div class="prev">
-      <span class="plabel">OHITETTU</span><span id="g0"></span>
-      <span class="pnum" id="n0">–</span><span class="pname" id="c0"></span>
+      <div class="q"><span class="glyphs" id="g2"></span><span class="qnum" id="n2">–</span><span class="qch" id="c2"></span></div>
+      <div class="q"><span class="glyphs" id="g3"></span><span class="qnum" id="n3">–</span><span class="qch" id="c3"></span></div>
     </div>
   </div>
 </div>
 
 <div class="ctl">
   <span class="gps" id="gps">GPS –</span>
-  <div class="sep"></div>
-  <button class="cm" data-c="h" aria-pressed="false">Vain höger</button>
-  <button class="cm" data-c="v" aria-pressed="false">Vain vänster</button>
+  <button class="cm" data-c="own" aria-pressed="false">Oma suunta</button>
+  <button class="cm" data-c="opp" aria-pressed="false">Vastasuunta</button>
   <button class="cm" data-c="b" aria-pressed="true">Molemmat</button>
-  <div class="sep sim"></div>
   <button class="sim" id="flip">Käänny (sim)</button>
   <button class="sim sp" data-v="6">6 km/h</button>
   <button class="sim sp" data-v="80">80 km/h</button>
@@ -123,36 +114,35 @@ body.wake-off #wake{display:block}
   <button id="go">ALOITA</button>
   <p>Napautus käynnistää paikannuksen ja pitää näytön päällä. Aseta puhelin telineeseen ennen ajoa, älä käytä ajaessa.</p>
   <p>iPhone: Asetukset › Näyttö ja kirkkaus › Automaattilukitus › Ei koskaan.</p>
-  <p>Demo: tunnukset ovat skemaattisia, ei maalausohjeeksi.</p>
+  <p>Koodit: Trafikverket, Tecken och koder (2015). Demo, ei maalausohjeeksi.</p>
 </div>
 <div id="wake">NÄYTTÖ VOI SAMMUA · napauta ruutua</div>
 
 <script src="vendor/proj4.js"></script>
 <script src="js/core.js"></script>
+<script src="js/codes.js"></script>
 <script>
 "use strict";
 proj4.defs("EPSG:3006", "+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 const SIM = /[?&]sim=1\b/.test(location.search);
 if (SIM) document.body.classList.add('simmode');
+const MAX_PER_SIDE = 3;   /* Tero 15.9. kentältä: enintään 3 symbolia per puoli */
 
-const NAMES = {
-  FORV_B:'Varning före heldragen linje – början', FORV_S:'Varning före heldragen linje – slut',
-  SOLID_B:'Heldragen linje – början', SOLID_S:'Heldragen linje – slut',
-  WARN_B:'Varningslinje – början', WARN_S:'Varningslinje – slut',
-  TAT_B:'3+3 börjar', TAT_S:'3+3 slutar'
+/* Nimet kuljettajan näkökulmasta (käännetty kuvio = börjar/slutar vaihtuu). */
+const BASE = {
+  SOLID: ['Spärr börjar', 'Spärr slutar'], FORV: ['Varning före spärr börjar', 'Varning före spärr slutar'],
+  WARN: ['Varningslinje börjar', 'Varningslinje slutar'], TAT: ['3+3 börjar', '3+3 slutar']
 };
-const FLIP_W = {WARN_B:'WARN_S', WARN_S:'WARN_B', TAT_B:'TAT_S', TAT_S:'TAT_B'};
-const CHNAME = {h:'Höger', v:'Vänster', w:'Keskiviiva'};
 
 let DATA = null;
 let mode = 'b';
 let simM = null, simV = 80/3.6, simDs = 1;
 
 /* ---------- paikannus ---------- */
-const G = {fixM:null, fixT:0, speed:0, acc:null, dist:null, rawT:0, hist:[], dir:null, trustedT:0, err:null};
+const G = {fixM:null, fixT:0, speed:0, acc:null, dist:null, hist:[], dir:null, trustedT:0, err:null};
 function onPos(p){
   const c = p.coords, now = Date.now();
-  G.acc = c.accuracy; G.rawT = now; G.err = null;
+  G.acc = c.accuracy; G.err = null;
   const xy = proj4("EPSG:4326", "EPSG:3006", [c.longitude, c.latitude]);
   const pr = Core.projectPointToGeometry(DATA.geometry, {e:xy[0], n:xy[1]});
   if (!pr) return;
@@ -203,6 +193,53 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 document.addEventListener('click', reqLock);
 document.addEventListener('touchend', reqLock, {passive:true});
 
+/* ---------- kanavat ja koodit ---------- */
+/* Omistajasuunta: Höger = NVDB-suunta (+1), Vänster = vastasuunta (-1), keskiviiva NVDB-kehyksessä (+1). */
+function rotatedFor(ch, ds){ const owner = ch === 'v' ? -1 : 1; return owner !== ds; }
+function visibleCh(ch, ds){
+  if (mode === 'b' || ch === 'w') return true;
+  const own = !rotatedFor(ch, ds);
+  return mode === 'own' ? own : !own;
+}
+function codeName(code, rot){
+  const [kind, be] = code.split('_');
+  const i = (be === 'B') !== rot ? 0 : 1;
+  return BASE[kind][i];
+}
+function sideLabel(ch, ds){ return ch === 'w' ? 'keskiviiva' : (rotatedFor(ch, ds) ? 'vastasuunta' : 'oma suunta'); }
+
+/* Tulevat merkit ryhminä: saman kanavan merkit samassa paalussa ovat yksi ryhmä. */
+function groupMarks(m, ds){
+  const up = DATA.marks
+    .filter(k => visibleCh(k.ch, ds) && (ds > 0 ? k.m >= m : k.m <= m))
+    .sort((a, b) => ds > 0 ? a.m - b.m : b.m - a.m);
+  const out = [];
+  for (const k of up) {
+    const last = out[out.length - 1];
+    if (last && last.m === k.m && last.ch === k.ch) last.codes.push(k.c);
+    else out.push({m:k.m, ch:k.ch, codes:[k.c]});
+  }
+  for (const g of out) {
+    g.rot = rotatedFor(g.ch, ds);
+    /* Loppuva ensin, alkava perään omistajan suunnassa; käännettynä järjestys vaihtuu. */
+    g.codes.sort((a, b) => (a.endsWith('_S') ? 0 : 1) - (b.endsWith('_S') ? 0 : 1));
+    if (g.rot) g.codes.reverse();
+  }
+  return out;
+}
+
+function glyphSvg(code, rot, size){
+  const inner = Codes.layout(code, rot, size)
+    .map(r => `<rect x="${r[0].toFixed(1)}" y="${r[1].toFixed(1)}" width="${r[2].toFixed(1)}" height="${r[3].toFixed(1)}" fill="#F2EFE6"/>`).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><rect x="0.5" y="0.5" width="${size-1}" height="${size-1}" fill="#131519" stroke="#2A3038"/>${inner}</svg>`;
+}
+function drawGlyph(cx, code, rot, x, y, s, stroke){
+  cx.fillStyle = '#131519'; cx.fillRect(x, y, s, s);
+  cx.strokeStyle = stroke; cx.lineWidth = 1; cx.strokeRect(x+0.5, y+0.5, s-1, s-1);
+  cx.fillStyle = '#F2EFE6';
+  for (const r of Codes.layout(code, rot, s)) cx.fillRect(x + r[0], y + r[1], r[2], r[3]);
+}
+
 /* ---------- data-apurit ---------- */
 function stateAt(ch, pos){
   let st = 'NORMAL';
@@ -213,41 +250,6 @@ function stateAt(ch, pos){
 }
 function inSingle(pos){ return DATA.singleZones.some(z => pos >= z.a && pos < z.b); }
 function speedAt(pos){ let cur = null; for (const s of DATA.speeds) { if (s.m <= pos) cur = s; } return cur; }
-function activeMarks(){ return DATA.marks.filter(k => mode === 'b' ? true : (k.ch === mode || k.ch === 'w')); }
-function codeFor(k, ds){ return (k.ch === 'w' && ds < 0) ? FLIP_W[k.c] : k.c; }
-function chLabel(k, ds){
-  if (k.ch === 'w') return CHNAME.w;
-  const own = (k.ch === 'h' && ds > 0) || (k.ch === 'v' && ds < 0);
-  return CHNAME[k.ch] + (own ? ' · oma suunta' : ' · vastasuunta');
-}
-
-/* Skemaattiset tunnukset. Lopulliset kuviot Trafikverketin Kod-riviltä. */
-function glyphShapes(code, s){
-  const u = s*0.11, g = s*0.10, out = [];
-  const bar = (x,w) => out.push([x, s*0.18, w, s*0.64]);
-  const dot = (x) => out.push([x, s*0.42, s*0.11, s*0.16]);
-  switch (code) {
-    case 'FORV_B': dot(s*0.10); dot(s*0.10+u+g); bar(s*0.52,u*1.5); break;
-    case 'FORV_S': bar(s*0.14,u*1.5); dot(s*0.60); dot(s*0.60+u+g); break;
-    case 'SOLID_B': bar(s*0.16,u*1.2); bar(s*0.16+u*1.2+g,u*2.4); break;
-    case 'SOLID_S': bar(s*0.16,u*2.4); bar(s*0.16+u*2.4+g,u*1.2); break;
-    case 'WARN_B': bar(s*0.22,u*1.6); dot(s*0.22+u*1.6+g); break;
-    case 'WARN_S': dot(s*0.22); bar(s*0.22+u+g,u*1.6); break;
-    case 'TAT_B': dot(s*0.14); dot(s*0.40); dot(s*0.66); bar(s*0.80,u*0.9); break;
-    case 'TAT_S': bar(s*0.10,u*0.9); dot(s*0.34); dot(s*0.60); dot(s*0.86); break;
-  }
-  return out;
-}
-function glyph(code, size){
-  const inner = glyphShapes(code, size).map(r => `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="#F2EFE6"/>`).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><rect x="0.5" y="0.5" width="${size-1}" height="${size-1}" fill="none" stroke="#2A3038"/>${inner}</svg>`;
-}
-function drawGlyph(cx, code, x, y, s, stroke, dim){
-  cx.fillStyle = dim ? '#1B1F25' : '#131519'; cx.fillRect(x, y, s, s);
-  cx.strokeStyle = stroke; cx.lineWidth = 1; cx.strokeRect(x+0.5, y+0.5, s-1, s-1);
-  cx.fillStyle = dim ? '#6E7580' : '#F2EFE6';
-  for (const r of glyphShapes(code, s)) cx.fillRect(x+r[0], y+r[1], r[2], r[3]);
-}
 
 const cv = document.getElementById('road'), cx = cv.getContext('2d');
 let W = 0, H = 0;
@@ -257,25 +259,23 @@ function resize(){
 }
 new ResizeObserver(resize).observe(document.querySelector('.roadwrap'));
 
-function drawRoad(m, ds, v){
-  const dsd = ds === 0 ? 1 : ds;
+function drawRoad(m, ds, v, groups){
   const look = v < 3 ? 260 : (v < 12 ? 500 : 900);
-  const nowY = H*0.80, ppm = nowY/look;
-  const y = p => nowY - (p - m)*ppm*dsd;
+  const nowY = H*0.82, ppm = nowY/look;
+  const y = p => nowY - (p - m)*ppm*ds;
   const cxm = W/2;
   cx.clearRect(0,0,W,H);
-  cx.fillStyle = '#1B1F25'; cx.fillRect(cxm-W*0.30, 0, W*0.60, H);
-  cx.fillStyle = '#131519'; cx.fillRect(0,0,cxm-W*0.30,H); cx.fillRect(cxm+W*0.30,0,W,H);
+  cx.fillStyle = '#1B1F25'; cx.fillRect(cxm-W*0.34, 0, W*0.68, H);
+  cx.fillStyle = '#131519'; cx.fillRect(0,0,cxm-W*0.34,H); cx.fillRect(cxm+W*0.34,0,W,H);
   cx.strokeStyle = '#262C34'; cx.lineWidth = 1; cx.font = '500 10px ui-monospace,monospace'; cx.fillStyle = '#7D858F';
-  const pMin = m - (dsd > 0 ? 60 : look + 40), pMax = m + (dsd > 0 ? look + 40 : 60);
+  const pMin = m - (ds > 0 ? 60 : look + 40), pMax = m + (ds > 0 ? look + 40 : 60);
   for (let p = Math.floor(pMin/100)*100; p < pMax; p += 100) {
     const yy = Math.round(y(p)) + 0.5; if (yy < -10 || yy > H + 10) continue;
-    cx.beginPath(); cx.moveTo(cxm-W*0.30, yy); cx.lineTo(cxm+W*0.30, yy); cx.stroke();
-    if (p % 500 === 0) cx.fillText(String(p), 6, yy - 4);
+    cx.beginPath(); cx.moveTo(cxm-W*0.34, yy); cx.lineTo(cxm+W*0.34, yy); cx.stroke();
+    if (p % 500 === 0) cx.fillText(String(p), 4, yy - 4);
   }
   /* Puolet vaihtuvat ajosuunnan mukaan (Tero 15.9.): ruutu näyttää tien tuulilasin läpi. */
-  const sw = dsd;
-  const lanes = [{ch:'v', x:cxm - 9*sw}, {ch:'h', x:cxm + 9*sw}].filter(L => mode === 'b' || L.ch === mode);
+  const lanes = [{ch:'v', x:cxm - 9*ds}, {ch:'h', x:cxm + 9*ds}].filter(L => visibleCh(L.ch, ds));
   const dash = (x, st, p) => {
     const on = st === 'SOLID' ? 12 : (st === 'WARN' ? 9 : 3);
     const off = st === 'SOLID' ? 0 : (st === 'WARN' ? 3 : (st === 'TAT' ? 3 : 9));
@@ -299,39 +299,39 @@ function drawRoad(m, ds, v){
       p += step;
     }
   }
-  const box = Math.max(15, Math.min(24, W*0.075));
-  const maxLen = Math.max(12, W*0.30 - box - 18);
-  const baseLen = Math.max(10, Math.min(W*0.13, maxLen));
-  const taken = {'1':[], '-1':[]};
-  const vis = activeMarks().map(k => ({k, yy:y(k.m)})).filter(o => o.yy > -30 && o.yy < H + 30).sort((a,b) => a.yy - b.yy);
-  for (const {k, yy} of vis) {
-    const right = k.ch === 'w' ? true : ((k.ch === 'h') === (dsd > 0));
-    const dir = right ? 1 : -1;
-    const x0 = right ? cxm + 16 : cxm - 16;
-    const lane = taken[String(dir)];
-    let len = baseLen, guard = 0;
-    while (guard++ < 8 && lane.some(o => Math.abs(o.y - yy) < box*0.95 && Math.abs(o.len - len) < box*1.15)) {
-      len += box*1.2; if (len > maxLen) { len = baseLen; break; }
+  /* Enintään MAX_PER_SIDE ryhmää per puoli. Rypäskollisio sivusuunnassa, ei pituussuunnassa. */
+  const box = Math.max(22, Math.min(34, W*0.11));
+  const perSide = {'1': [], '-1': []};
+  for (const gr of groups) {
+    const key = (gr.ch === 'w' || !gr.rot) ? '1' : '-1';
+    if (perSide[key].length < MAX_PER_SIDE) perSide[key].push(gr);
+  }
+  for (const key of ['1', '-1']) {
+    const dir = Number(key), taken = [];
+    const x0 = dir > 0 ? cxm + 16 : cxm - 16;
+    const maxLen = Math.max(8, W*0.5 - 16 - box*2 - 4);
+    const baseLen = Math.min(10, maxLen);
+    for (const gr of perSide[key]) {
+      const yy = y(gr.m);
+      if (yy < -box || yy > H + box) continue;
+      const wBox = box * gr.codes.length;
+      let len = baseLen, guard = 0;
+      while (guard++ < 6 && taken.some(o => Math.abs(o.y - yy) < box*1.02 && Math.abs(o.len - len) < box*gr.codes.length)) {
+        len += box*1.1; if (len > maxLen) { len = baseLen; break; }
+      }
+      taken.push({y:yy, len});
+      const col = gr.codes.some(c => c.startsWith('SOLID')) ? '#FFAE1A' : '#52A8DA';
+      cx.strokeStyle = col; cx.lineWidth = 2;
+      cx.beginPath(); cx.moveTo(x0, yy); cx.lineTo(x0 + dir*len, yy); cx.stroke();
+      let bx = dir > 0 ? x0 + len : x0 - len - wBox;
+      for (const c of gr.codes) { drawGlyph(cx, c, gr.rot, bx, yy - box/2, box, col); bx += box; }
     }
-    lane.push({y:yy, len});
-    const passed = dsd > 0 ? k.m < m : k.m > m;
-    const code = codeFor(k, dsd);
-    const col = passed ? '#4A515B' : (code.startsWith('SOLID') ? '#FFAE1A' : '#52A8DA');
-    cx.strokeStyle = col; cx.lineWidth = 2;
-    cx.beginPath(); cx.moveTo(x0, yy); cx.lineTo(x0 + dir*len, yy); cx.stroke();
-    drawGlyph(cx, code, dir > 0 ? x0 + len : x0 - len - box, yy - box/2, box, col, passed);
   }
   cx.strokeStyle = '#F2EFE6'; cx.lineWidth = 2;
   cx.beginPath(); cx.moveTo(0, nowY + 0.5); cx.lineTo(W, nowY + 0.5); cx.stroke();
-  cx.fillStyle = '#F2EFE6'; cx.font = '600 9px ui-monospace,monospace'; cx.fillText('NYT', 6, nowY + 13);
 }
 
-function fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
-function setQ(gi, ni, ci, k, size, m, ds){
-  document.getElementById(gi).innerHTML = k ? glyph(codeFor(k, ds), size) : '';
-  document.getElementById(ni).textContent = k ? Math.round(Math.abs(k.m - m)) : '–';
-  document.getElementById(ci).textContent = k ? NAMES[codeFor(k, ds)] + ' · ' + chLabel(k, ds) : '';
-}
+function fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 
 function render(){
   const now = Date.now();
@@ -341,7 +341,7 @@ function render(){
   if (!SIM) {
     if (G.err) warn = G.err;
     else if (G.acc === null) warn = 'GPS HAETAAN';
-    else if (G.dist !== null && G.dist > 150) { warn = 'EI TIELLÄ 99'; sub = 'Lähin kohta tiellä ' + fmt(G.dist/1000) + ' km päässä. Näyttö herää kun ajat demo-osuudelle (paalu ' + fmt(DATA.lo) + '–' + fmt(DATA.hi) + ').'; }
+    else if (G.dist !== null && G.dist > 150) { warn = 'EI TIELLÄ 99'; sub = 'Lähin kohta tiellä ' + fmt(G.dist/1000) + ' km päässä. Näyttö herää demo-osuudella (paalu ' + fmt(DATA.lo) + '–' + fmt(DATA.hi) + ').'; }
     else if (G.acc > 25 || now - G.trustedT > 4000) warn = 'GPS EPÄVARMA';
   }
   document.getElementById('gps').textContent = SIM ? 'SIMULAATIO' :
@@ -353,31 +353,30 @@ function render(){
     document.getElementById('chain').textContent = '–';
     return;
   }
-  const v = SIM ? simV : G.speed;
-  drawRoad(m, ds, v);
   document.getElementById('chain').textContent = fmt(m);
   const s = speedAt(m);
-  document.getElementById('spd').textContent = s ? s.h + ' km/h · sikt ' + s.sikt : '';
+  document.getElementById('spd').textContent = s ? s.h + ' km/h' : '';
   document.getElementById('zone').textContent = inSingle(m) ? '1 viiva' : '2 viivaa';
   const dirEl = document.getElementById('dir');
   if (ds === 0) {
+    drawRoad(m, 1, G.speed, []);
     dirEl.textContent = 'suunta ? aja eteenpäin'; dirEl.style.color = 'var(--amber)';
-    ['g1','c1','ch1','g2','c2','g3','c3','g0','c0'].forEach(id => document.getElementById(id).textContent = '');
-    document.getElementById('n1').textContent = '…';
+    ['g1','c1','ch1','g2','c2','g3','c3'].forEach(id => document.getElementById(id).textContent = '');
+    ['n1','n2','n3'].forEach(id => document.getElementById(id).textContent = '…');
     return;
   }
   dirEl.textContent = ds > 0 ? '↑ NVDB kasvaa' : '↓ NVDB laskee'; dirEl.style.color = ds > 0 ? 'var(--lcd)' : 'var(--amber)';
-  const act = activeMarks();
-  const ahead = ds > 0 ? act.filter(k => k.m >= m).slice(0, 3) : act.filter(k => k.m <= m).slice(-3).reverse();
-  const behind = ds > 0 ? act.filter(k => k.m < m).slice(-1)[0] : act.filter(k => k.m > m)[0];
-  setQ('g1','n1','c1', ahead[0], 74, m, ds);
-  document.getElementById('c1').textContent = ahead[0] ? NAMES[codeFor(ahead[0], ds)] : '';
-  document.getElementById('ch1').textContent = ahead[0] ? chLabel(ahead[0], ds) : '';
-  setQ('g2','n2','c2', ahead[1], 30, m, ds);
-  setQ('g3','n3','c3', ahead[2], 22, m, ds);
-  document.getElementById('g0').innerHTML = behind ? glyph(codeFor(behind, ds), 20) : '';
-  document.getElementById('n0').textContent = behind ? ('−' + Math.round(Math.abs(m - behind.m)) + ' m') : '–';
-  document.getElementById('c0').textContent = behind ? NAMES[codeFor(behind, ds)] : '';
+  const groups = groupMarks(m, ds);
+  drawRoad(m, ds, SIM ? simV : G.speed, groups);
+  const put = (gi, ni, gr, size) => {
+    document.getElementById(gi).innerHTML = gr ? gr.codes.map(c => glyphSvg(c, gr.rot, size)).join('') : '';
+    document.getElementById(ni).textContent = gr ? Math.round(Math.abs(gr.m - m)) : '–';
+  };
+  put('g1', 'n1', groups[0], 74);
+  document.getElementById('c1').textContent = groups[0] ? groups[0].codes.map(c => codeName(c, groups[0].rot)).join(' + ') : '';
+  document.getElementById('ch1').textContent = groups[0] ? sideLabel(groups[0].ch, ds) : '';
+  put('g2', 'n2', groups[1], 36); document.getElementById('c2').textContent = groups[1] ? sideLabel(groups[1].ch, ds) : '';
+  put('g3', 'n3', groups[2], 36); document.getElementById('c3').textContent = groups[2] ? sideLabel(groups[2].ch, ds) : '';
 }
 
 let lastT = performance.now();
