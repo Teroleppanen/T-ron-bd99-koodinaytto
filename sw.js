@@ -6,7 +6,7 @@
  * Teron puhelin naytti vanhaa versiota kentalla vaikka uusi oli julkaistu.
  * Heikossa kentassa 4 s jalkeen annetaan valimuistin versio, jos sellainen on.
  */
-var CACHE_NAME = "bd99demo-v8";
+var CACHE_NAME = "bd99demo-v9";
 // teroleppanen.github.io on yhteinen origin kaikille Pages-projekteille:
 // siivotaan vain omat valimuistit, ei 827:n eika BD392:n.
 var CACHE_PREFIX = "bd99demo-";

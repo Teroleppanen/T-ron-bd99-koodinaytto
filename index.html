@@ -81,6 +81,23 @@ body.wake-off #wake{display:block}
   .q .qnum{font-size:28px}
   .q .qch{display:none}
 }
+/* Molempien puolten seuraava merkki (Tero 15.9.), lähempi isompana.
+   Kiinteät rivikorkeudet, ettei paneeli räpsähdä kun lähempi puoli vaihtuu. */
+.sides{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+.side{display:grid;grid-template-rows:14px 60px 54px 16px;align-items:center;min-width:0;padding:0 10px}
+.side.right{justify-items:end;text-align:right;border-left:1px solid var(--edge)}
+.slabel{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--paint-dim);white-space:nowrap;overflow:hidden;max-width:100%}
+.sg{display:flex;gap:4px;align-items:center;height:60px}
+.snum{font-weight:900;font-variant-numeric:tabular-nums;line-height:1;font-size:36px;color:#9AA2AC;white-space:nowrap}
+.side.near .snum{font-size:52px;color:var(--paint)}
+.snum .unit{font-size:.35em;font-weight:600;color:var(--paint-dim);margin-left:.1em}
+.sname{font-family:var(--mono);font-size:12px;color:var(--lcd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@media (max-width:720px){
+  .side{grid-template-rows:12px 54px 50px 14px;padding:0 6px}
+  .sg{height:54px}
+  .snum{font-size:32px}
+  .side.near .snum{font-size:46px}
+}
 </style>
 </head>
 <body>
@@ -99,17 +116,9 @@ body.wake-off #wake{display:block}
       <div class="big" id="wbig">GPS HAETAAN</div>
       <div class="sub" id="wsub">Ei paalulukua. Väärä uskottava luku on pahempi kuin puuttuva.</div>
     </div>
-    <div class="next">
-      <div class="glyphs" id="g1"></div>
-      <div>
-        <div class="num"><span id="n1">–</span><span class="unit">m</span></div>
-        <div class="name" id="c1"></div>
-        <div class="ch" id="ch1"></div>
-      </div>
-    </div>
-    <div class="queue">
-      <div class="q"><span class="glyphs" id="g2"></span><span class="qnum" id="n2">–</span><span class="qch" id="c2"></span></div>
-      <div class="q"><span class="glyphs" id="g3"></span><span class="qnum" id="n3">–</span><span class="qch" id="c3"></span></div>
+    <div class="sides">
+      <div class="side" id="sideL"><div class="slabel">vasen · vastasuunta</div><div class="sg" id="sgL"></div><div class="snum"><span id="snL">–</span><span class="unit">m</span></div><div class="sname" id="scL"></div></div>
+      <div class="side right" id="sideR"><div class="slabel">oikea · oma suunta</div><div class="sg" id="sgR"></div><div class="snum"><span id="snR">–</span><span class="unit">m</span></div><div class="sname" id="scR"></div></div>
     </div>
   </div>
 </div>
@@ -537,22 +546,31 @@ function render(){
   if (ds === 0) {
     drawRoad(m, 1);
     dirEl.textContent = 'suunta ?'; dirEl.style.color = 'var(--amber)';
-    ['g1','c1','ch1','g2','c2','g3','c3'].forEach(id => document.getElementById(id).textContent = '');
-    ['n1','n2','n3'].forEach(id => document.getElementById(id).textContent = '…');
+    fillSide('L', null, false, m); fillSide('R', null, false, m);
     return;
   }
   dirEl.textContent = ds > 0 ? '↑ kasvaa' : '↓ laskee'; dirEl.style.color = ds > 0 ? 'var(--lcd)' : 'var(--amber)';
   drawRoad(m, ds);
-  const groups = groupMarks(m, ds);
-  const put = (gi, ni, gr, size) => {
-    document.getElementById(gi).innerHTML = gr ? gr.codes.map(c => glyphSvg(c, gr.rot, size)).join('') : '';
-    document.getElementById(ni).textContent = gr ? Math.round(Math.abs(gr.m - m)) : '–';
-  };
-  put('g1', 'n1', groups[0], 74);
-  document.getElementById('c1').textContent = groups[0] ? groups[0].codes.map(c => codeName(c, groups[0].rot)).join(' + ') : '';
-  document.getElementById('ch1').textContent = groups[0] ? sideLabel(groups[0].ch, ds) : '';
-  put('g2', 'n2', groups[1], 36); document.getElementById('c2').textContent = groups[1] ? sideLabel(groups[1].ch, ds) : '';
-  put('g3', 'n3', groups[2], 36); document.getElementById('c3').textContent = groups[2] ? sideLabel(groups[2].ch, ds) : '';
+  /* Molempien puolten seuraava merkki (Tero 15.9.): yksi iso luku ei kertonut kummalle
+     puolelle merkki tulee, ja merkit voivat tulla yhtä aikaa molemmille puolille.
+     Oikea = oma suunta ja keskiviiva, vasen = vastasuunta, kuten tiellä ruudulla. */
+  const next = {'1': null, '-1': null};
+  for (const g of groupMarks(m, ds)) {
+    const k = String(g.side);
+    if (!next[k]) next[k] = g;
+    if (next['1'] && next['-1']) break;
+  }
+  const dL = next['-1'] ? Math.abs(next['-1'].m - m) : Infinity;
+  const dR = next['1'] ? Math.abs(next['1'].m - m) : Infinity;
+  fillSide('L', next['-1'], dL <= dR + 1, m);
+  fillSide('R', next['1'], dR <= dL + 1, m);
+}
+function fillSide(id, g, near, m){
+  document.getElementById('side' + id).classList.toggle('near', !!g && near);
+  const size = near ? 52 : 38;
+  document.getElementById('sg' + id).innerHTML = g ? g.codes.map(c => glyphSvg(c, g.rot, size)).join('') : '';
+  document.getElementById('sn' + id).textContent = g ? Math.round(Math.abs(g.m - m)) : '–';
+  document.getElementById('sc' + id).textContent = g ? g.codes.map(c => codeName(c, g.rot)).join(' + ') : '';
 }
 
 let lastT = performance.now();
