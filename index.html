@@ -385,14 +385,28 @@ function drawRoad(m, ds){
   cx.beginPath(); cx.moveTo(0, nowY + 0.5); cx.lineTo(W, nowY + 0.5); cx.stroke();
 }
 
-/* ---------- perspektiivinäkymä (kokeilu, ?p=1) ----------
+/* ---------- perspektiivinäkymä (?p=1) ----------
    Tero 15.9.: viivojen pituussuhteet eivät vastanneet tietä. Suorassa ylhäältä-
    kuvassa 350 m:n ennakolla 1 px on noin 1,5 m, joten 3 m viiva on 2 px pitkä
    mutta 7 px leveä. Perspektiivissä lähellä metri saa enemmän pikseleitä kuin
    kaukana, kuten tuulilasin läpi. Tuplaviivan 1:1:1 säilyy joka syvyydellä. */
 const PERSP = /[?&]p=1\b/.test(location.search);
-const D0 = 45;   /* syvyysvakio: 45 m edessä on puolimatkassa horisonttiin */
+/* Kaarteet NVDB-geometriasta (?k=1, Tero 15.9.): keskiviivan sivupoikkeama
+   lasketaan kuljettajan paikallisessa koordinaatistossa ja projisoidaan samalla
+   perspektiivillä kuin viivojen leveys. Suunta 50 m:n matkalta, ettei kuva nyi. */
+const CURVES = /[?&]k=1\b/.test(location.search);
+const D0 = 45;            /* syvyysvakio: 45 m edessä on puolimatkassa horisonttiin */
+const ROAD_HALF_M = 3.75; /* ruudun tienpuolikas vastaa 3,75 m */
 let pslotKey = null;
+function geoAt(p){
+  const g = DATA.geometry;
+  if (p <= g[0].m) return g[0];
+  if (p >= g[g.length-1].m) return g[g.length-1];
+  let lo = 0, hi = g.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (g[mid].m <= p) lo = mid; else hi = mid; }
+  const a = g[lo], b = g[hi], t = b.m === a.m ? 0 : (p - a.m) / (b.m - a.m);
+  return {e: a.e + t*(b.e - a.e), n: a.n + t*(b.n - a.n)};
+}
 function drawRoadPersp(m, ds){
   const hz = H*0.05, nowY = H*0.88;
   const sc = d => D0 / (D0 + d);
@@ -400,18 +414,29 @@ function drawRoadPersp(m, ds){
   const dBehind = -D0*0.2, dFar = LOOK_M + 40;
   const clampD = d => Math.min(dFar, Math.max(dBehind, d));
   const cxm = W/2, halfNear = W*0.46;
+  /* Keskiviivan x syvyydellä d. Ilman kaarteita aina ruudun keskellä. */
+  let X = d => cxm;
+  if (CURVES) {
+    const P0 = geoAt(m), pa = geoAt(m - ds*10), pb = geoAt(m + ds*40);
+    let fx = pb.e - pa.e, fy = pb.n - pa.n; const fl = Math.hypot(fx, fy) || 1; fx /= fl; fy /= fl;
+    const rx = fy, ry = -fx, kx = halfNear / ROAD_HALF_M;
+    X = d => { const P = geoAt(m + ds*d); return cxm + ((P.e - P0.e)*rx + (P.n - P0.n)*ry) * kx * sc(d); };
+  }
   cx.clearRect(0,0,W,H);
   cx.fillStyle = '#131519'; cx.fillRect(0,0,W,H);
+  const depths = [];
+  for (let d = dBehind; d < dFar; d += Math.max(2, d*0.06)) depths.push(d);
+  depths.push(dFar);
   cx.fillStyle = '#1B1F25'; cx.beginPath();
-  cx.moveTo(cxm - halfNear*sc(dBehind), yOf(dBehind)); cx.lineTo(cxm + halfNear*sc(dBehind), yOf(dBehind));
-  cx.lineTo(cxm + halfNear*sc(dFar), yOf(dFar)); cx.lineTo(cxm - halfNear*sc(dFar), yOf(dFar));
+  depths.forEach((d, i) => { const x = X(d) - halfNear*sc(d), yy = yOf(d); if (i === 0) cx.moveTo(x, yy); else cx.lineTo(x, yy); });
+  for (let i = depths.length - 1; i >= 0; i--) { const d = depths[i]; cx.lineTo(X(d) + halfNear*sc(d), yOf(d)); }
   cx.closePath(); cx.fill();
   cx.strokeStyle = '#262C34'; cx.lineWidth = 1; cx.font = '500 10px ui-monospace,monospace'; cx.fillStyle = '#7D858F';
   const gLo = Math.min(m, m + ds*dFar), gHi = Math.max(m, m + ds*dFar);
   for (let p = Math.ceil(gLo/100)*100; p <= gHi; p += 100) {
     const d = (p - m)*ds; if (d < 0 || d > dFar) continue;
-    const yy = Math.round(yOf(d)) + 0.5, hw = halfNear*sc(d);
-    cx.beginPath(); cx.moveTo(cxm - hw, yy); cx.lineTo(cxm + hw, yy); cx.stroke();
+    const yy = Math.round(yOf(d)) + 0.5, hw = halfNear*sc(d), xc = X(d);
+    cx.beginPath(); cx.moveTo(xc - hw, yy); cx.lineTo(xc + hw, yy); cx.stroke();
     if (p % 500 === 0) cx.fillText(String(p), 4, yy - 3);
   }
   const lw0 = Math.max(4, Math.round(W*0.02));
@@ -424,7 +449,7 @@ function drawRoadPersp(m, ds){
     if (d2 <= d1) return cyc;
     const s1 = sc(d1), s2 = sc(d2), y1 = yOf(d1), y2 = yOf(d2);
     const w1 = Math.max(0.7, lw0*s1)/2, w2 = Math.max(0.7, lw0*s2)/2;
-    const x1 = cxm + off*s1, x2 = cxm + off*s2;
+    const x1 = X(d1) + off*s1, x2 = X(d2) + off*s2;
     cx.fillStyle = st === 'NORMAL' ? '#9AA2AC' : '#F2EFE6';
     cx.beginPath(); cx.moveTo(x1-w1, y1); cx.lineTo(x1+w1, y1); cx.lineTo(x2+w2, y2); cx.lineTo(x2-w2, y2); cx.closePath(); cx.fill();
     return cyc;
@@ -459,9 +484,11 @@ function drawRoadPersp(m, ds){
       const s = sc(Math.max(d, 0));
       const box = Math.round(box0 * Math.min(1, Math.max(0.5, s*2.2)));
       const yy = yOf(d);
-      const x0 = cxm + side*(lw0*2 + 6)*sc(Math.max(d, dBehind));
+      const dd = Math.max(d, dBehind);
+      const x0 = Math.min(W - 12, Math.max(12, X(dd) + side*(lw0*2 + 6)*sc(dd)));
       const wBox = box * gr.codes.length;
-      const maxLen = Math.max(8, W*0.5 - Math.abs(x0 - cxm) - wBox - 4);
+      const room = side > 0 ? W - x0 : x0;
+      const maxLen = Math.max(8, room - wBox - 4);
       const len = Math.min(maxLen, 10 + gr.pslot*box*1.1);
       const isPassed = d < 0;
       const col = isPassed ? '#4A515B' : (gr.codes.some(c => c.startsWith('SOLID')) ? '#FFAE1A' : '#52A8DA');
