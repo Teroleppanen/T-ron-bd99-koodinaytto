@@ -269,7 +269,7 @@ function resize(){
 new ResizeObserver(resize).observe(document.querySelector('.roadwrap'));
 
 function drawRoad(m, ds, v, groups){
-  const look = v < 3 ? 260 : (v < 12 ? 500 : 900);
+  const look = 350;   /* Tero 15.9. tien päältä: ennakko 350 m, isommat symbolit */
   const nowY = H*0.82, ppm = nowY/look;
   const y = p => nowY - (p - m)*ppm*ds;
   const cxm = W/2;
@@ -309,7 +309,7 @@ function drawRoad(m, ds, v, groups){
     }
   }
   /* Enintään MAX_PER_SIDE ryhmää per puoli. Rypäskollisio sivusuunnassa, ei pituussuunnassa. */
-  const box = Math.max(22, Math.min(34, W*0.11));
+  const box = Math.max(33, Math.min(51, W*0.165));   /* 1,5x (Tero 15.9.) */
   const perSide = {'1': [], '-1': []};
   for (const gr of groups) {
     const key = (gr.ch === 'w' || !gr.rot) ? '1' : '-1';
