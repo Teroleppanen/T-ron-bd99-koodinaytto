@@ -19,7 +19,7 @@ body{background:var(--asphalt);color:var(--paint);font-family:var(--disp);
   -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden;
   -webkit-user-select:none;user-select:none}
 .status{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid var(--edge);
-  font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--paint-dim);text-transform:uppercase;flex:0 0 auto}
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--paint-dim);text-transform:uppercase;flex:0 0 auto;white-space:nowrap}
 .dir{color:var(--lcd)}
 .chain{margin-left:auto;display:flex;align-items:baseline;gap:8px}
 .chain span{font-size:10px;color:#6E7580;letter-spacing:.14em}
@@ -33,15 +33,16 @@ body{background:var(--asphalt);color:var(--paint);font-family:var(--disp);
 canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 .readout{flex:1 1 auto;display:flex;flex-direction:column;padding:14px 16px;min-width:0}
 .next{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding-bottom:12px}
+.next>div:last-child{min-width:0}
 .glyphs{display:flex;gap:4px;flex:0 0 auto}
 .next .num{font-weight:900;font-size:clamp(56px,13vw,120px);line-height:.82;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .next .unit{font-size:.3em;font-weight:600;color:var(--paint-dim);margin-left:.12em}
-.next .name{font-family:var(--mono);font-size:clamp(12px,1.7vw,15px);color:var(--lcd);margin-top:8px}
-.next .ch{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--paint-dim);margin-top:3px}
+.next .name{font-family:var(--mono);font-size:clamp(12px,1.7vw,15px);color:var(--lcd);margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.next .ch{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--paint-dim);margin-top:3px;white-space:nowrap}
 .queue{flex:0 0 auto;border-top:1px solid var(--edge);padding-top:10px;display:flex;flex-direction:column;gap:10px}
 .q{display:flex;align-items:center;gap:12px}
 .q .qnum{font-weight:800;font-variant-numeric:tabular-nums;font-size:34px}
-.q .qch{font-family:var(--mono);font-size:11px;color:var(--paint-dim);text-transform:uppercase;letter-spacing:.1em}
+.q .qch{font-family:var(--mono);font-size:11px;color:var(--paint-dim);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
 .warnbox{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center}
 .stage.uncertain .readout>*:not(.warnbox){display:none}
 .stage.uncertain .warnbox{display:flex}
@@ -53,7 +54,8 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 button{font:inherit;letter-spacing:inherit;color:var(--paint-dim);background:transparent;border:1px solid var(--edge);
   border-radius:2px;padding:8px 11px;cursor:pointer;text-transform:uppercase}
 button[aria-pressed="true"]{color:var(--asphalt);background:var(--lcd);border-color:var(--lcd)}
-.gps{color:#8A929C}
+/* GPS-teksti omalla rivillään: vaihtuva pituus ei saa rivittää nappeja uudelleen (räpsähdys 15.9.). */
+.gps{color:#8A929C;flex:0 0 100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sim{display:none}
 body.simmode .sim{display:inline-flex}
 #start{position:fixed;inset:0;z-index:50;background:rgba(10,12,15,.96);display:flex;flex-direction:column;
@@ -65,15 +67,19 @@ body.simmode .sim{display:inline-flex}
 #wake{display:none;flex:0 0 auto;order:99;background:#FFD200;color:#000;text-align:center;
   font-weight:800;font-size:16px;padding:10px}
 body.wake-off #wake{display:block}
-/* Pystyasento: lukemat vievät vain oman korkeutensa, tie saa loput. */
+/* Pystyasento: kiinteät korkeudet ylä- ja lukemapaneelille, tie saa loput.
+   Sisällön pituuden vaihtelu ei saa muuttaa tien korkeutta (räpsähdys 15.9.). */
 @media (max-width:720px){
+  .status{flex-wrap:nowrap;overflow:hidden;gap:10px;padding:4px 10px}
+  .chain b{font-size:22px}
   .stage{flex-direction:column}
   .roadwrap{flex:1 1 0;min-height:120px;border-right:none;border-bottom:1px solid var(--edge)}
-  .readout{flex:0 0 auto;padding:8px 12px}
+  .readout{flex:0 0 158px;height:158px;overflow:hidden;padding:8px 12px}
   .next{padding-bottom:6px;gap:10px}
   .next .num{font-size:clamp(44px,15vw,76px)}
-  .queue{flex-direction:row;gap:18px;padding-top:6px}
+  .queue{flex-direction:row;flex-wrap:nowrap;gap:18px;padding-top:6px;overflow:hidden}
   .q .qnum{font-size:28px}
+  .q .qch{display:none}
 }
 </style>
 </head>
@@ -136,6 +142,7 @@ proj4.defs("EPSG:3006", "+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=500000 +y
 const SIM = /[?&]sim=1\b/.test(location.search);
 if (SIM) document.body.classList.add('simmode');
 const MAX_PER_SIDE = 3;   /* Tero 15.9. kentältä: enintään 3 symbolia per puoli */
+const LOOK_M = 350;       /* Tero 15.9. tien päältä: ennakko 350 m */
 
 /* Nimet kuljettajan näkökulmasta (käännetty kuvio = börjar/slutar vaihtuu). */
 const BASE = {
@@ -217,24 +224,35 @@ function codeName(code, rot){
 }
 function sideLabel(ch, ds){ return ch === 'w' ? 'keskiviiva' : (rotatedFor(ch, ds) ? 'vastasuunta' : 'oma suunta'); }
 
-/* Tulevat merkit ryhminä: saman kanavan merkit samassa paalussa ovat yksi ryhmä. */
-function groupMarks(m, ds){
-  const up = DATA.marks
-    .filter(k => visibleCh(k.ch, ds) && (ds > 0 ? k.m >= m : k.m <= m))
-    .sort((a, b) => ds > 0 ? a.m - b.m : b.m - a.m);
+/* Kaikki merkit ryhminä NVDB-järjestyksessä: saman kanavan merkit samassa paalussa ovat yksi ryhmä. */
+function buildGroups(ds){
+  const sorted = DATA.marks.filter(k => visibleCh(k.ch, ds)).slice()
+    .sort((a, b) => a.m - b.m || (a.ch < b.ch ? -1 : (a.ch > b.ch ? 1 : 0)));
   const out = [];
-  for (const k of up) {
+  for (const k of sorted) {
     const last = out[out.length - 1];
     if (last && last.m === k.m && last.ch === k.ch) last.codes.push(k.c);
     else out.push({m:k.m, ch:k.ch, codes:[k.c]});
   }
   for (const g of out) {
     g.rot = rotatedFor(g.ch, ds);
+    g.id = g.m + '|' + g.ch;
+    g.side = (g.ch === 'w' || !g.rot) ? 1 : -1;
     /* Loppuva ensin, alkava perään omistajan suunnassa; käännettynä järjestys vaihtuu. */
     g.codes.sort((a, b) => (a.endsWith('_S') ? 0 : 1) - (b.endsWith('_S') ? 0 : 1));
     if (g.rot) g.codes.reverse();
   }
   return out;
+}
+let groupCache = {key:null, list:null};
+function allGroups(ds){
+  const key = ds + '|' + mode;
+  if (groupCache.key !== key) groupCache = {key, list: buildGroups(ds)};
+  return groupCache.list;
+}
+function groupMarks(m, ds){
+  const list = allGroups(ds);
+  return ds > 0 ? list.filter(g => g.m >= m) : list.filter(g => g.m <= m).reverse();
 }
 
 function glyphSvg(code, rot, size){
@@ -242,10 +260,10 @@ function glyphSvg(code, rot, size){
     .map(r => `<rect x="${r[0].toFixed(1)}" y="${r[1].toFixed(1)}" width="${r[2].toFixed(1)}" height="${r[3].toFixed(1)}" fill="#F2EFE6"/>`).join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><rect x="0.5" y="0.5" width="${size-1}" height="${size-1}" fill="#131519" stroke="#2A3038"/>${inner}</svg>`;
 }
-function drawGlyph(cx, code, rot, x, y, s, stroke){
+function drawGlyph(cx, code, rot, x, y, s, stroke, dim){
   cx.fillStyle = '#131519'; cx.fillRect(x, y, s, s);
   cx.strokeStyle = stroke; cx.lineWidth = 1; cx.strokeRect(x+0.5, y+0.5, s-1, s-1);
-  cx.fillStyle = '#F2EFE6';
+  cx.fillStyle = dim ? '#6E7580' : '#F2EFE6';
   for (const r of Codes.layout(code, rot, s)) cx.fillRect(x + r[0], y + r[1], r[2], r[3]);
 }
 
@@ -264,78 +282,104 @@ const cv = document.getElementById('road'), cx = cv.getContext('2d');
 let W = 0, H = 0;
 function resize(){
   const r = cv.parentElement.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
-  W = r.width; H = r.height; cv.width = W*dpr; cv.height = H*dpr; cx.setTransform(dpr,0,0,dpr,0,0);
+  const w = Math.round(r.width), h = Math.round(r.height);
+  if (w === W && h === H) return;
+  W = w; H = h; cv.width = Math.max(1, w*dpr); cv.height = Math.max(1, h*dpr); cx.setTransform(dpr,0,0,dpr,0,0);
 }
 new ResizeObserver(resize).observe(document.querySelector('.roadwrap'));
 
-function drawRoad(m, ds, v, groups){
-  const look = 350;   /* Tero 15.9. tien päältä: ennakko 350 m, isommat symbolit */
-  const nowY = H*0.82, ppm = nowY/look;
+/* Sivupaikka riippuu vain naapurista samalla puolella NVDB-järjestyksessä, ei siitä
+   mitä ruudulla sattuu olemaan: symbolit eivät hypi kun joku poistuu (Tero 15.9.). */
+let slotCache = {key:null};
+function assignSlots(list, box, ppm){
+  const key = groupCache.key + '|' + box + '|' + ppm.toFixed(5);
+  if (slotCache.key === key) return;
+  const minGapM = box * 1.05 / ppm;
+  const prev = {'1': null, '-1': null};
+  for (const g of list) {
+    const p = prev[String(g.side)];
+    g.slot = (p && (g.m - p.m) < minGapM) ? (p.slot + 1) % 3 : 0;
+    prev[String(g.side)] = g;
+  }
+  slotCache.key = key;
+}
+const seenAt = new Map();
+
+function drawRoad(m, ds){
+  const nowY = H*0.82, ppm = nowY/LOOK_M;
   const y = p => nowY - (p - m)*ppm*ds;
   const cxm = W/2;
   cx.clearRect(0,0,W,H);
   cx.fillStyle = '#1B1F25'; cx.fillRect(cxm-W*0.34, 0, W*0.68, H);
   cx.fillStyle = '#131519'; cx.fillRect(0,0,cxm-W*0.34,H); cx.fillRect(cxm+W*0.34,0,W,H);
   cx.strokeStyle = '#262C34'; cx.lineWidth = 1; cx.font = '500 10px ui-monospace,monospace'; cx.fillStyle = '#7D858F';
-  const pMin = m - (ds > 0 ? 60 : look + 40), pMax = m + (ds > 0 ? look + 40 : 60);
+  const pMin = m - (ds > 0 ? 60 : LOOK_M + 40), pMax = m + (ds > 0 ? LOOK_M + 40 : 60);
   for (let p = Math.floor(pMin/100)*100; p < pMax; p += 100) {
     const yy = Math.round(y(p)) + 0.5; if (yy < -10 || yy > H + 10) continue;
     cx.beginPath(); cx.moveTo(cxm-W*0.34, yy); cx.lineTo(cxm+W*0.34, yy); cx.stroke();
     if (p % 500 === 0) cx.fillText(String(p), 4, yy - 4);
   }
-  /* Puolet vaihtuvat ajosuunnan mukaan (Tero 15.9.): ruutu näyttää tien tuulilasin läpi. */
-  const lanes = [{ch:'v', x:cxm - 9*ds}, {ch:'h', x:cxm + 9*ds}].filter(L => visibleCh(L.ch, ds));
+  /* Viivan leveys; tuplaviivassa viiva, väli ja viiva ovat yhtä leveitä (Ruotsi 15+15+15 cm).
+     Puolet vaihtuvat ajosuunnan mukaan (Tero 15.9.): ruutu näyttää tien tuulilasin läpi. */
+  const lw = Math.max(5, Math.round(W * 0.018));
+  const lanes = [{ch:'v', x:cxm - lw*ds}, {ch:'h', x:cxm + lw*ds}].filter(L => visibleCh(L.ch, ds));
   const dash = (x, st, p) => {
     const on = st === 'SOLID' ? 12 : (st === 'WARN' ? 9 : 3);
     const off = st === 'SOLID' ? 0 : (st === 'WARN' ? 3 : (st === 'TAT' ? 3 : 9));
     const y1 = y(p), y2 = y(p + on);
     if (Math.min(y1,y2) < H+20 && Math.max(y1,y2) > -20) {
       cx.strokeStyle = st === 'NORMAL' ? '#9AA2AC' : '#F2EFE6';
-      cx.lineWidth = st === 'SOLID' ? 4 : 3;
+      cx.lineWidth = lw;
       cx.beginPath(); cx.moveTo(x, y1); cx.lineTo(x, y2); cx.stroke();
     }
     return on + off;
   };
   cx.lineCap = 'butt';
-  let p = Math.max(DATA.lo, pMin);
+  /* Katkoviivan vaihe sidottu paaluun (12 m jaksot), ei auton paikkaan: viiva vierii ajon mukana. */
+  let p = Math.floor(Math.max(DATA.lo, pMin) / 12) * 12;
   const end = Math.min(DATA.hi, pMax);
   while (p < end) {
-    if (inSingle(p)) {
-      p += dash(cxm, stateAt('w', p), p);
-    } else {
-      let step = 12;
-      for (const L of lanes) step = dash(L.x, stateAt(L.ch, p), p);
-      p += step;
-    }
+    if (inSingle(p)) { p += dash(cxm, stateAt('w', p), p); continue; }
+    const sh = stateAt('h', p), sv = stateAt('v', p);
+    /* Kummallakaan puolella ei varoitusta eikä sulkua: 3+9 kulkee yksin keskellä (Tero 15.9.). */
+    if (sh === 'NORMAL' && sv === 'NORMAL') { p += dash(cxm, 'NORMAL', p); continue; }
+    for (const L of lanes) dash(L.x, L.ch === 'h' ? sh : sv, p);
+    p += 12;
   }
-  /* Enintään MAX_PER_SIDE ryhmää per puoli. Rypäskollisio sivusuunnassa, ei pituussuunnassa. */
-  const box = Math.max(33, Math.min(51, W*0.165));   /* 1,5x (Tero 15.9.) */
-  const perSide = {'1': [], '-1': []};
-  for (const gr of groups) {
-    const key = (gr.ch === 'w' || !gr.rot) ? '1' : '-1';
-    if (perSide[key].length < MAX_PER_SIDE) perSide[key].push(gr);
-  }
-  for (const key of ['1', '-1']) {
-    const dir = Number(key), taken = [];
-    const x0 = dir > 0 ? cxm + 16 : cxm - 16;
-    const maxLen = Math.max(8, W*0.5 - 16 - box*2 - 4);
+
+  const box = Math.max(33, Math.min(51, Math.round(W*0.165)));   /* 1,5x (Tero 15.9.) */
+  const list = allGroups(ds);
+  assignSlots(list, box, ppm);
+  const now = performance.now(), shown = new Set(), lay = [];
+  for (const side of [1, -1]) {
+    const arr = list.filter(g => g.side === side);
+    const x0 = side > 0 ? cxm + lw*2 + 8 : cxm - lw*2 - 8;
+    const maxLen = Math.max(8, W*0.5 - lw*2 - 8 - box*2 - 4);
     const baseLen = Math.min(10, maxLen);
-    for (const gr of perSide[key]) {
+    /* Tulevat: MAX_PER_SIDE ensimmäistä ajosuunnassa. Ohitetut piirretään harmaana kunnes ne vierivät ruudulta. */
+    const upcoming = ds > 0 ? arr.filter(g => g.m >= m).slice(0, MAX_PER_SIDE)
+                            : arr.filter(g => g.m <= m).slice(-MAX_PER_SIDE);
+    const passed = arr.filter(g => (ds > 0 ? g.m < m : g.m > m) && y(g.m) < H + box);
+    for (const gr of passed.concat(upcoming)) {
       const yy = y(gr.m);
       if (yy < -box || yy > H + box) continue;
+      shown.add(gr.id);
+      if (!seenAt.has(gr.id)) seenAt.set(gr.id, now);
+      const isPassed = ds > 0 ? gr.m < m : gr.m > m;
       const wBox = box * gr.codes.length;
-      let len = baseLen, guard = 0;
-      while (guard++ < 6 && taken.some(o => Math.abs(o.y - yy) < box*1.02 && Math.abs(o.len - len) < box*gr.codes.length)) {
-        len += box*1.1; if (len > maxLen) { len = baseLen; break; }
-      }
-      taken.push({y:yy, len});
-      const col = gr.codes.some(c => c.startsWith('SOLID')) ? '#FFAE1A' : '#52A8DA';
+      const len = Math.min(maxLen, baseLen + gr.slot * box * 1.1);
+      const col = isPassed ? '#4A515B' : (gr.codes.some(c => c.startsWith('SOLID')) ? '#FFAE1A' : '#52A8DA');
+      cx.globalAlpha = Math.min(1, (now - seenAt.get(gr.id)) / 350);
       cx.strokeStyle = col; cx.lineWidth = 2;
-      cx.beginPath(); cx.moveTo(x0, yy); cx.lineTo(x0 + dir*len, yy); cx.stroke();
-      let bx = dir > 0 ? x0 + len : x0 - len - wBox;
-      for (const c of gr.codes) { drawGlyph(cx, c, gr.rot, bx, yy - box/2, box, col); bx += box; }
+      cx.beginPath(); cx.moveTo(x0, yy); cx.lineTo(x0 + side*len, yy); cx.stroke();
+      let bx = side > 0 ? x0 + len : x0 - len - wBox;
+      lay.push([gr.id, Math.round(bx)]);
+      for (const c of gr.codes) { drawGlyph(cx, c, gr.rot, bx, yy - box/2, box, col, isPassed); bx += box; }
+      cx.globalAlpha = 1;
     }
   }
+  for (const id of Array.from(seenAt.keys())) if (!shown.has(id)) seenAt.delete(id);
+  window.__lay = lay;
   cx.strokeStyle = '#F2EFE6'; cx.lineWidth = 2;
   cx.beginPath(); cx.moveTo(0, nowY + 0.5); cx.lineTo(W, nowY + 0.5); cx.stroke();
 }
@@ -368,15 +412,15 @@ function render(){
   document.getElementById('zone').textContent = inSingle(m) ? '1 viiva' : '2 viivaa';
   const dirEl = document.getElementById('dir');
   if (ds === 0) {
-    drawRoad(m, 1, G.speed, []);
-    dirEl.textContent = 'suunta ? aja eteenpäin'; dirEl.style.color = 'var(--amber)';
+    drawRoad(m, 1);
+    dirEl.textContent = 'suunta ?'; dirEl.style.color = 'var(--amber)';
     ['g1','c1','ch1','g2','c2','g3','c3'].forEach(id => document.getElementById(id).textContent = '');
     ['n1','n2','n3'].forEach(id => document.getElementById(id).textContent = '…');
     return;
   }
-  dirEl.textContent = ds > 0 ? '↑ NVDB kasvaa' : '↓ NVDB laskee'; dirEl.style.color = ds > 0 ? 'var(--lcd)' : 'var(--amber)';
+  dirEl.textContent = ds > 0 ? '↑ kasvaa' : '↓ laskee'; dirEl.style.color = ds > 0 ? 'var(--lcd)' : 'var(--amber)';
+  drawRoad(m, ds);
   const groups = groupMarks(m, ds);
-  drawRoad(m, ds, SIM ? simV : G.speed, groups);
   const put = (gi, ni, gr, size) => {
     document.getElementById(gi).innerHTML = gr ? gr.codes.map(c => glyphSvg(c, gr.rot, size)).join('') : '';
     document.getElementById(ni).textContent = gr ? Math.round(Math.abs(gr.m - m)) : '–';
